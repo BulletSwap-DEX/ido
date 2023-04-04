@@ -34,10 +34,19 @@ describe("IDO", function () {
     it("Should private sale", async function () {
       const { bulletERC, bulletIDO, merkleTree, leafNode, user1 } = await loadFixture(deployFixture);
       await bulletIDO.setStage(1);
-      await bulletIDO.setMaxBuyPrivate(ethers.utils.parseEther("1"));
-      await bulletIDO.setMinBuyPrivate(ethers.utils.parseEther("0.1"));
+      await bulletIDO.setMinMaxBuyPrivate([ethers.utils.parseEther("0.1"), ethers.utils.parseEther("1")]);
       await bulletIDO.setTokenPerEtherPrivate(10);
-      await bulletIDO.connect(user1).privateSale(merkleTree.getHexProof(leafNode[1]),{value: ethers.utils.parseEther('0.2')});
+      await expect(
+        await bulletIDO
+          .connect(user1)
+          .privateSale(merkleTree.getHexProof(leafNode[1]),{value: ethers.utils.parseEther('0.2')})
+      ).to
+        .emit(bulletIDO, "PrivateSale")
+        .withArgs(
+          user1.address,
+          ethers.utils.parseEther('0.2'),
+          ethers.utils.parseEther('2')
+        );
 
       expect(ethers.utils.formatEther(await bulletERC.balanceOf(bulletIDO.address))).to.equal('998.0');
       expect(ethers.utils.formatEther(await bulletIDO.provider.getBalance(bulletIDO.address))).to.equal('0.2');
@@ -51,10 +60,19 @@ describe("IDO", function () {
     it("Should public sale", async function () {
       const { bulletERC, bulletIDO, user1 } = await loadFixture(deployFixture);
       await bulletIDO.setStage(2);
-      await bulletIDO.setMaxBuyPublic(ethers.utils.parseEther("1.5"));
-      await bulletIDO.setMinBuyPublic(ethers.utils.parseEther("0.2"));
+      await bulletIDO.setMinMaxBuyPublic([ethers.utils.parseEther('0.2'), ethers.utils.parseEther('1.5')]);
       await bulletIDO.setTokenPerEtherPublic(5);
-      await bulletIDO.connect(user1).publicSale({value: ethers.utils.parseEther('0.5')});
+      await expect(
+        await bulletIDO
+          .connect(user1)
+          .publicSale({value: ethers.utils.parseEther('0.5')})
+      ).to
+        .emit(bulletIDO, "PublicSale")
+        .withArgs(
+          user1.address,
+          ethers.utils.parseEther('0.5'),
+          ethers.utils.parseEther('2.5')
+        );
 
       expect(ethers.utils.formatEther(await bulletERC.balanceOf(bulletIDO.address))).to.equal('997.5');
       expect(ethers.utils.formatEther(await bulletIDO.provider.getBalance(bulletIDO.address))).to.equal('0.5');
@@ -65,14 +83,15 @@ describe("IDO", function () {
     })
 
     it("Should withdraw", async function () {
-      const { bulletIDO, user1 } = await loadFixture(deployFixture);
+      const { bulletIDO, user1, user2 } = await loadFixture(deployFixture);
       await bulletIDO.setStage(2);
-      await bulletIDO.setMaxBuyPublic(ethers.utils.parseEther("2.1"));
-      await bulletIDO.setMinBuyPublic(ethers.utils.parseEther("0.2"));
+      await bulletIDO.setMinMaxBuyPublic([ethers.utils.parseEther('0.2'), ethers.utils.parseEther('2.1')]);
       await bulletIDO.setTokenPerEtherPublic(1);
       await bulletIDO.connect(user1).publicSale({value: ethers.utils.parseEther('2.0')});
       await expect(bulletIDO.connect(user1).withdraw()).to.be.rejectedWith('Ownable: caller is not the owner');
       expect(ethers.utils.formatEther(await bulletIDO.provider.getBalance(bulletIDO.address))).to.equal('2.0');
+      await expect(bulletIDO.withdraw()).to.be.rejectedWith("withdraw: zero address");
+      await bulletIDO.setWithdrawAddress(user2.address);
       await bulletIDO.withdraw();
       expect(ethers.utils.formatEther(await bulletIDO.provider.getBalance(bulletIDO.address))).to.equal('0.0');
     })

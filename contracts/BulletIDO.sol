@@ -14,6 +14,18 @@ contract BulletIDO is Ownable {
         Public
     }
 
+    event PrivateSale (
+      address buyer,
+      uint256 amountIn,
+      uint256 amountOut
+    );
+
+    event PublicSale (
+      address buyer,
+      uint256 amountIn,
+      uint256 amountOut
+    );
+
     bytes32 public root;
     address public token;
     Stage public stage;
@@ -25,6 +37,7 @@ contract BulletIDO is Ownable {
     uint256 public maxBuyPublic;
     uint256 public minBuyPublic;
     uint256 private tokenPerEtherPublic;
+    address public withdrawAddress;
 
     constructor(address _token) {
       token = _token;
@@ -40,18 +53,16 @@ contract BulletIDO is Ownable {
 
       IERC20(token).transfer(msg.sender, tokenAmount);
       boughtAmountPrivate[msg.sender] += msg.value;
+      emit PrivateSale(msg.sender, msg.value, tokenAmount);
     }
 
     function setTokenPerEtherPrivate(uint256 value) external onlyOwner {
       tokenPerEtherPrivate = value;
     }
 
-    function setMaxBuyPrivate(uint256 amount) external onlyOwner {
-      maxBuyPrivate = amount;
-    }
-
-    function setMinBuyPrivate(uint256 amount) external onlyOwner {
-      minBuyPrivate = amount;
+    function setMinMaxBuyPrivate(uint256[] memory values) external onlyOwner {
+      minBuyPrivate = values[0];
+      maxBuyPrivate = values[1];
     }
 
     function publicSale() external payable {
@@ -63,18 +74,16 @@ contract BulletIDO is Ownable {
 
       IERC20(token).transfer(msg.sender, tokenAmount);
       boughtAmountPublic[msg.sender] += msg.value;
+      emit PublicSale(msg.sender, msg.value, tokenAmount);
     }
 
     function setTokenPerEtherPublic(uint256 value) external onlyOwner {
       tokenPerEtherPublic = value;
     }
 
-    function setMaxBuyPublic(uint256 amount) external onlyOwner {
-      maxBuyPublic = amount;
-    }
-
-    function setMinBuyPublic(uint256 amount) external onlyOwner {
-      minBuyPublic = amount;
+    function setMinMaxBuyPublic(uint256[] memory values) external onlyOwner {
+      minBuyPublic = values[0];
+      maxBuyPublic = values[1];
     }
 
     function tokenPerEther() public view returns(uint256) {
@@ -105,7 +114,12 @@ contract BulletIDO is Ownable {
         return MerkleProof.verify(proof, root, leaf);
     }
 
+    function setWithdrawAddress(address _withdrawAddress) external onlyOwner {
+      withdrawAddress = _withdrawAddress;
+    }
+
     function withdraw() external onlyOwner {
+      require(withdrawAddress != address(0), "withdraw: zero address");
       payable(msg.sender).sendValue(address(this).balance);
     }
 }
