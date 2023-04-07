@@ -21,6 +21,11 @@ const config = process.env.ZKSYNC == "true"
         ethNetwork: "goerli",
         zksync: true,
         verifyURL: 'https://zksync2-testnet-explorer.zksync.dev/contract_verification'
+      },
+      local: {
+        url: "http://localhost:3050",
+        ethNetwork: "http://localhost:8545",
+        zksync: true,
       }
     },
     etherscan: {

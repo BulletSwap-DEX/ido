@@ -51,16 +51,25 @@ describe("Deployment", function() {
     const { bulletERC, bulletIDO,merkleTree, leafNode } = await deployFixture();
     const setStageTx = await bulletIDO.setStage(1);
     await setStageTx.wait();
-    const setMaxBuyTx = await bulletIDO.setMaxBuyPrivate(ethers.utils.parseEther("1"));
-    await setMaxBuyTx.wait();
-    const setMinBuyTx = await bulletIDO.setMinBuyPrivate(ethers.utils.parseEther('0.1'));
-    await setMinBuyTx.wait();
+    const setMinMaxBuyTx = await bulletIDO.setMinMaxBuyPrivate([ethers.utils.parseEther('0.1'), ethers.utils.parseEther("1")]);
+    await setMinMaxBuyTx.wait();
     const setTokenPerEtherTx = await bulletIDO.setTokenPerEtherPrivate(10);
     await setTokenPerEtherTx.wait();
-    // problem here
-    // not sending value when invoking function
-    const privateSaleTx = await bulletIDO.connect(user1).privateSale(merkleTree.getHexProof(leafNode[1], {value: ethers.utils.parseEther('0.2')}));
+    const privateSaleTx = await bulletIDO.connect(user1).privateSale(merkleTree.getHexProof(leafNode[1]), {value: ethers.utils.parseEther('0.2')});
     await privateSaleTx.wait();
+    expect(ethers.utils.formatEther(await bulletERC.balanceOf(bulletIDO.address))).to.equal('998.0');
+  })
+
+  it("Should public sale", async function() {
+    const { bulletERC, bulletIDO,merkleTree, leafNode } = await deployFixture();
+    const setStageTx = await bulletIDO.setStage(2);
+    await setStageTx.wait();
+    const setMinMaxBuyTx = await bulletIDO.setMinMaxBuyPublic([ethers.utils.parseEther('0.1'), ethers.utils.parseEther("1")]);
+    await setMinMaxBuyTx.wait();
+    const setTokenPerEtherTx = await bulletIDO.setTokenPerEtherPublic(10);
+    await setTokenPerEtherTx.wait();
+    const publicSaleTx = await bulletIDO.connect(user1).publicSale({value: ethers.utils.parseEther('0.2')});
+    await publicSaleTx.wait();
 
     expect(ethers.utils.formatEther(await bulletERC.balanceOf(bulletIDO.address))).to.equal('998.0');
   })
