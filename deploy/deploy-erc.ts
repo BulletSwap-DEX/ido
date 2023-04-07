@@ -9,6 +9,6 @@ export default async function(hre: HardhatRuntimeEnvironment) {
   const wallet = new Wallet(process.env.ZKSYNC_PK as string);
   const deployer = new Deployer(hre, wallet);
   const artifact = await deployer.loadArtifact("BulletERC20");
-  const contract = await deployer.deploy(artifact, ["Test ERC20", "TST"]);
+  const contract = await deployer.deploy(artifact, ["Bullet", "BLT"]);
   console.log("deployed to:", contract.address);
 }

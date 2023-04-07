@@ -17,10 +17,16 @@ const config = process.env.ZKSYNC == "true"
     defaultNetwork: "zkSyncTestnet",
     networks: {
       zkSyncTestnet : {
-        url: "https://zksync2-testnet.zksync.dev",
+        url: "https://testnet.era.zksync.dev",
         ethNetwork: "goerli",
         zksync: true,
         verifyURL: 'https://zksync2-testnet-explorer.zksync.dev/contract_verification'
+      },
+      zkSyncMainnet : {
+        url: "https://mainnet.era.zksync.io",
+        ethNetwork: "mainnet",
+        zksync: true,
+        verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification"
       },
       local: {
         url: "http://localhost:3050",
