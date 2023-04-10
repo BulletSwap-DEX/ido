@@ -20,7 +20,7 @@ const [owner, user1, user2] = accounts;
 async function deployFixture() {
   const deployer = new Deployer(hre, owner);
   const artifactERC = await deployer.loadArtifact("BulletERC20");
-  const bulletERC = await deployer.deploy(artifactERC, ["Bullet", "BLT"]);
+  const bulletERC = await deployer.deploy(artifactERC, ["Bullet", "BLT", ethers.utils.parseEther((10_000_000).toString())]);
   const artifactIDO = await deployer.loadArtifact("BulletIDO");
   const bulletIDO = await deployer.deploy(artifactIDO, [bulletERC.address]);
 
@@ -48,7 +48,7 @@ describe("Deployment", function() {
   })
 
   it("Should private sale", async function() {
-    const { bulletERC, bulletIDO,merkleTree, leafNode } = await deployFixture();
+    const { bulletERC, bulletIDO, merkleTree, leafNode } = await deployFixture();
     const setStageTx = await bulletIDO.setStage(1);
     await setStageTx.wait();
     const setMinMaxBuyTx = await bulletIDO.setMinMaxBuyPrivate([ethers.utils.parseEther('0.1'), ethers.utils.parseEther("1")]);
@@ -61,7 +61,7 @@ describe("Deployment", function() {
   })
 
   it("Should public sale", async function() {
-    const { bulletERC, bulletIDO,merkleTree, leafNode } = await deployFixture();
+    const { bulletERC, bulletIDO, merkleTree, leafNode } = await deployFixture();
     const setStageTx = await bulletIDO.setStage(2);
     await setStageTx.wait();
     const setMinMaxBuyTx = await bulletIDO.setMinMaxBuyPublic([ethers.utils.parseEther('0.1'), ethers.utils.parseEther("1")]);
@@ -72,5 +72,23 @@ describe("Deployment", function() {
     await publicSaleTx.wait();
 
     expect(ethers.utils.formatEther(await bulletERC.balanceOf(bulletIDO.address))).to.equal('998.0');
+  })
+
+  it("Should withdraw", async function() {
+    const { bulletIDO } = await deployFixture();
+    const setStageTx = await bulletIDO.setStage(2);
+    await setStageTx.wait();
+    const setMinMaxBuyTx = await bulletIDO.setMinMaxBuyPublic([ethers.utils.parseEther('0.1'), ethers.utils.parseEther("1")]);
+    await setMinMaxBuyTx.wait();
+    const setTokenPerEtherTx = await bulletIDO.setTokenPerEtherPublic(10);
+    await setTokenPerEtherTx.wait();
+    const publicSaleTx = await bulletIDO.connect(user1).publicSale({value: ethers.utils.parseEther('0.2')});
+    await publicSaleTx.wait();
+    expect(await bulletIDO.provider.getBalance(bulletIDO.address)).to.equal(ethers.utils.parseEther('0.2'));
+    const setWdAddressTx = await bulletIDO.setWithdrawAddress(owner.address);
+    await setWdAddressTx.wait();
+    const withdrawTx = await bulletIDO.withdraw();
+    await withdrawTx.wait();
+    expect(await bulletIDO.provider.getBalance(bulletIDO.address)).to.equal(0);
   })
 })
