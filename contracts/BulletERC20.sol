@@ -4,9 +4,13 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 
-contract BulletERC20 is ERC20, Pausable, Ownable {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+contract BulletERC20 is ERC20, Pausable, Ownable, ERC20Capped {
+    constructor(string memory name, string memory symbol, uint256 cap)
+        ERC20(name, symbol)
+        ERC20Capped(cap) 
+        {}
 
     function pause() public onlyOwner {
         _pause();
@@ -17,13 +21,15 @@ contract BulletERC20 is ERC20, Pausable, Ownable {
     }
 
     function mint(address to, uint256 amount) public onlyOwner {
-        _beforeTokenTransfer(address(0), to, amount);
         _mint(to, amount);
     }
 
     function burn(uint256 amount) public {
-        _beforeTokenTransfer(msg.sender, address(0), amount);
         _burn(msg.sender, amount);
+    }
+
+    function _mint(address to, uint256 amount) internal override(ERC20, ERC20Capped) {
+        super._mint(to, amount);
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount)

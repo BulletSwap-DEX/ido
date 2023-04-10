@@ -8,7 +8,7 @@ describe("IDO", function () {
   async function deployFixture() {
     const [owner, user1, user2] = await ethers.getSigners();
     const BulletERC20 = await ethers.getContractFactory("BulletERC20");
-    const bulletERC = await BulletERC20.deploy("Bullet", "BLT");
+    const bulletERC = await BulletERC20.deploy("Bullet", "BLT", ethers.utils.parseEther((10_000_000).toString()));
     const BulletIDO = await ethers.getContractFactory("BulletIDO");
     const bulletIDO = await BulletIDO.deploy(bulletERC.address);
     await bulletERC.mint(bulletIDO.address, ethers.utils.parseEther("1000"));
