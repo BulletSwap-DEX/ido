@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract BulletIDOPrivate is Ownable {
+contract BulletIDOPrivate is Ownable, ReentrancyGuard {
     using Address for address payable;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -106,7 +107,7 @@ contract BulletIDOPrivate is Ownable {
         emit Deposit(msg.sender, amount);
     }
 
-    function harvest() public {
+    function harvest() public nonReentrant {
         UserInfo storage user = userInfo[msg.sender];
         require(stage() == Stage.Harvest, "stage: not harvest");
         require(user.amount > 0, "user: zero amount");
