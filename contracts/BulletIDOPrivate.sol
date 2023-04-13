@@ -77,7 +77,16 @@ contract BulletIDOPrivate is Ownable, ReentrancyGuard {
     }
 
     function stage() public view returns(Stage) {
-        if(block.timestamp > endHarvestTime && block.timestamp > endHarvestTime) {
+        if (
+            startSaleTime == 0 ||
+            endSaleTime == 0 ||
+            startHarvestTime == 0 ||
+            endHarvestTime == 0
+        ) {
+            return Stage.None;
+        }
+
+        if(block.timestamp > endSaleTime && block.timestamp > endHarvestTime) {
             return Stage.End;
         }
 
@@ -100,11 +109,15 @@ contract BulletIDOPrivate is Ownable, ReentrancyGuard {
         require(_verify(msg.sender, _proof), "not in whitelist");
 
         if(depositLimit > 0) {
-            require(user.amount <= depositLimit, "deposit: exceed limit");
+            require(user.amount + amount <= depositLimit, "deposit: exceed limit");
         }
         user.amount = user.amount.add(amount);
         totalAmount = totalAmount.add(amount);
         emit Deposit(msg.sender, amount);
+    }
+
+    function setDepositLimit(uint256 _amount) external onlyOwner {
+        depositLimit = _amount;
     }
 
     function harvest() public nonReentrant {
@@ -168,5 +181,11 @@ contract BulletIDOPrivate is Ownable, ReentrancyGuard {
         require(withdrawAddress != address(0), "withdraw: zero address");
         require(stage() == Stage.End, "stage: not end");
         payable(msg.sender).sendValue(address(this).balance);
+    }
+
+    function withdrawToken() external onlyOwner {
+        require(withdrawAddress != address(0), "withdraw: zero address");
+        require(stage() == Stage.End, "stage: not end");
+        token.safeTransfer(msg.sender, token.balanceOf(address(this)));
     }
 }
