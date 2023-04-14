@@ -1,51 +1,28 @@
-import { ethers } from "hardhat"
-import keccak256 from "keccak256";
-const { MerkleTree } = require("merkletreejs");
+import {ethers} from "hardhat";
 import {time, loadFixture} from "@nomicfoundation/hardhat-network-helpers";
 import {expect} from "chai";
 
-describe("IDO Private", function () {
+describe("IDO Public", function () {
   async function deployFixture() {
-    const [owner, user1, user2, user3] = await ethers.getSigners();
+    const [owner, user1, user2] = await ethers.getSigners();
     const BulletERC20 = await ethers.getContractFactory("BulletERC20");
     const bulletERC20 = await BulletERC20.deploy("Bullet", "BLT", ethers.utils.parseEther((10_000_000).toString()));
-    const BulletIDO = await ethers.getContractFactory("BulletIDOPrivate");
+    const BulletIDO = await ethers.getContractFactory("BulletIDOPublic");
     const bulletIDO = await BulletIDO.deploy(bulletERC20.address);
-    await bulletERC20.mint(bulletIDO.address, ethers.utils.parseEther((500_000).toString()));
-    let whitelisted = [
-      owner.address,
-      user1.address,
-      user3.address
-    ];
-    const leafNode = whitelisted.map(addr => keccak256(addr));
-    const merkleTree = new MerkleTree(leafNode, keccak256, {sortPairs: true});
-    await bulletIDO.setRoot('0x' + merkleTree.getRoot().toString('hex'));
-
+    await bulletERC20.mint(bulletIDO.address, ethers.utils.parseEther((1_000_000).toString()))
     const ONE_DAY = 24 * 60 * 60;
     return {
       bulletERC20,
       bulletIDO,
-      merkleTree,
-      leafNode,
       owner,
       user1,
       user2,
-      user3,
-      ONE_DAY,
+      ONE_DAY
     };
   }
 
-  describe("Deployment", function () {
-    it("Should verify whitelisted", async function () {
-      const {bulletIDO, merkleTree, leafNode, user1, user2} = await loadFixture(deployFixture);
-
-      expect(ethers.utils.formatEther(await bulletIDO.offeringAmount())).to.equal('500000.0');
-      expect(ethers.utils.formatEther(await bulletIDO.raisingAmount())).to.equal('56.4');
-      expect(await bulletIDO.connect(user1).verify(merkleTree.getHexProof(leafNode[1]))).to.equal(true);
-      expect(await bulletIDO.connect(user2).verify(merkleTree.getHexProof(leafNode[1]))).to.equal(false);
-    })
-
-    it("Should get correct stage", async function () {
+  describe("Deployment", function() {
+    it("Should get correct stage", async function() {
       const {
         bulletIDO,
         ONE_DAY
@@ -76,18 +53,14 @@ describe("IDO Private", function () {
       // time when harvest ended
       await time.increaseTo(baseTime + (4 * ONE_DAY) + 1);
       expect(await bulletIDO.stage()).to.equal(3);
-
     })
 
     it("Should deposit on correct stage", async function() {
       const {
         bulletIDO,
         user1,
-        merkleTree,
-        leafNode,
         ONE_DAY
       } = await loadFixture(deployFixture);
-      const proof = merkleTree.getHexProof(leafNode[1]);
 
       const baseTime = await time.latest();
       const startSale = baseTime + ONE_DAY;
@@ -101,18 +74,18 @@ describe("IDO Private", function () {
       await expect(
         await bulletIDO
           .connect(user1)
-          .deposit(proof, {value: ethers.utils.parseEther('1')})
+          .deposit({value: ethers.utils.parseEther("1")})
       ).to
         .emit(bulletIDO, "Deposit")
         .withArgs(
           user1.address,
-          ethers.utils.parseEther('1')
+          ethers.utils.parseEther("1")
         );
 
       await time.increaseTo(baseTime + (2 * ONE_DAY) + 1);
       await expect(
         bulletIDO.connect(user1)
-        .deposit(proof, {value: ethers.utils.parseEther('1')})
+        .deposit({value: ethers.utils.parseEther("1")})
       ).to.be.rejectedWith("stage: not sale");
     })
 
@@ -120,11 +93,8 @@ describe("IDO Private", function () {
       const {
         bulletIDO,
         user1,
-        merkleTree,
-        leafNode,
         ONE_DAY
       } = await loadFixture(deployFixture);
-      const proof = merkleTree.getHexProof(leafNode[1]);
 
       const baseTime = await time.latest();
       const startSale = baseTime + ONE_DAY;
@@ -133,17 +103,15 @@ describe("IDO Private", function () {
       const endHarvest = baseTime + (4 * ONE_DAY);
       await bulletIDO.setSaleTime(startSale, endSale);
       await bulletIDO.setHarvestTime(startHarvest, endHarvest);
-      await bulletIDO.setDepositLimit(ethers.utils.parseEther('2'));
+      await bulletIDO.setDepositLimit(ethers.utils.parseEther("2"));
 
       await time.increaseTo(baseTime + ONE_DAY + 1);
       await bulletIDO.connect(user1).deposit(
-        proof,
-        {value: ethers.utils.parseEther('1')
-      })
+        {value: ethers.utils.parseEther("1")}
+      );
       await expect(
         bulletIDO.connect(user1).deposit(
-          proof,
-          {value: ethers.utils.parseEther('1.1')}
+          {value: ethers.utils.parseEther("1.1")}
         )
       ).to.be.rejectedWith("deposit: exceed limit");
     })
@@ -153,8 +121,6 @@ describe("IDO Private", function () {
         bulletIDO,
         bulletERC20,
         user1,
-        merkleTree,
-        leafNode,
         ONE_DAY
       } = await loadFixture(deployFixture);
       const baseTime = await time.latest();
@@ -166,29 +132,26 @@ describe("IDO Private", function () {
       await bulletIDO.setHarvestTime(startHarvest, endHarvest);
       await time.increaseTo(baseTime + ONE_DAY + 1);
       await bulletIDO.connect(user1).deposit(
-        merkleTree.getHexProof(leafNode[1]),
         {value: ethers.utils.parseEther('1')}
       );
-      await time.increaseTo(baseTime + (3*ONE_DAY) + 1);
+      await time.increaseTo(baseTime + (3 * ONE_DAY) + 1);
       await expect(await bulletIDO.connect(user1).harvest())
         .to.emit(bulletIDO, "Harvest")
         .withArgs(
           user1.address,
-          ethers.utils.parseEther('8865'),
+          ethers.utils.parseEther('5910'),
           0
         );
       expect(await bulletERC20.balanceOf(user1.address))
-        .to.equal(ethers.utils.parseEther('8865'));
-    });
+        .to.equal(ethers.utils.parseEther('5910'));
+    })
 
     it("Should harvest on correct stage - overflow", async function() {
       const {
         bulletIDO,
         bulletERC20,
         user1,
-        user3,
-        merkleTree,
-        leafNode,
+        user2,
         ONE_DAY
       } = await loadFixture(deployFixture);
       const baseTime = await time.latest();
@@ -200,25 +163,23 @@ describe("IDO Private", function () {
       await bulletIDO.setHarvestTime(startHarvest, endHarvest);
       await time.increaseTo(baseTime + ONE_DAY + 1);
       await bulletIDO.connect(user1).deposit(
-        merkleTree.getHexProof(leafNode[1]),
-        {value: ethers.utils.parseEther('1')}
+        {value: ethers.utils.parseEther("2")}
       );
-      await bulletIDO.connect(user3).deposit(
-        merkleTree.getHexProof(leafNode[2]),
-        {value: ethers.utils.parseEther('99')}
+      await bulletIDO.connect(user2).deposit(
+        {value: ethers.utils.parseEther("198")}
       );
 
-      await time.increaseTo(baseTime + (3*ONE_DAY) + 1);
-      const refundAmount = (100 - 56.4) * 1 / 100;
+      await time.increaseTo(baseTime + (3 * ONE_DAY) + 1);
+      const refundAmount = (2000 - 1692) * 1 / 1000;
       await expect(await bulletIDO.connect(user1).harvest())
         .to.emit(bulletIDO, "Harvest")
         .withArgs(
           user1.address,
-          ethers.utils.parseEther('5000'),
+          ethers.utils.parseEther('10000'),
           ethers.utils.parseEther(refundAmount.toString())
         );
       expect(await bulletERC20.balanceOf(user1.address))
-        .to.equal(ethers.utils.parseEther('5000'));
+        .to.equal(ethers.utils.parseEther('10000'));
 
       await expect(bulletIDO.connect(user1).harvest())
         .to.rejectedWith('user: already harvested');
@@ -230,8 +191,6 @@ describe("IDO Private", function () {
         bulletERC20,
         owner,
         user1,
-        merkleTree,
-        leafNode,
         ONE_DAY
       } = await loadFixture(deployFixture);
       const baseTime = await time.latest();
@@ -243,23 +202,22 @@ describe("IDO Private", function () {
       await bulletIDO.setHarvestTime(startHarvest, endHarvest);
       await time.increaseTo(baseTime + ONE_DAY + 1);
       await bulletIDO.connect(user1).deposit(
-        merkleTree.getHexProof(leafNode[1]),
-        {value: ethers.utils.parseEther('1')}
+        {value: ethers.utils.parseEther("1")}
       );
-      await time.increaseTo(baseTime + (3*ONE_DAY) + 1);
+      await time.increaseTo(baseTime + (3 * ONE_DAY) + 1);
       await bulletIDO.connect(user1).harvest()
 
       await bulletIDO.setWithdrawAddress(owner.address);
       await expect(bulletIDO.withdraw()).to.be.rejectedWith('stage: not end');
-      await time.increaseTo(baseTime + (4*ONE_DAY) + 1);
+      await time.increaseTo(baseTime + (4 * ONE_DAY) + 1);
       expect(await bulletIDO.provider.getBalance(bulletIDO.address))
-        .to.equal(ethers.utils.parseEther('1'));
+        .to.equal(ethers.utils.parseEther("1"));
       await bulletIDO.withdraw();
       expect(await bulletIDO.provider.getBalance(bulletIDO.address))
         .to.equal(0);
-      
+
       expect(await bulletERC20.balanceOf(bulletIDO.address))
-        .to.equal(ethers.utils.parseEther((500_000 - 8865).toString()));
+        .to.equal(ethers.utils.parseEther((1_000_000 - 5910).toString()));
       await bulletIDO.withdrawToken();
       expect(await bulletERC20.balanceOf(bulletIDO.address))
         .to.equal(0);
