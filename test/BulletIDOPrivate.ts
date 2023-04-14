@@ -11,7 +11,7 @@ describe("IDO Private", function () {
     const bulletERC20 = await BulletERC20.deploy("Bullet", "BLT", ethers.utils.parseEther((10_000_000).toString()));
     const BulletIDO = await ethers.getContractFactory("BulletIDOPrivate");
     const bulletIDO = await BulletIDO.deploy(bulletERC20.address);
-    await bulletERC20.mint(bulletIDO.address, ethers.utils.parseEther("500000"));
+    await bulletERC20.mint(bulletIDO.address, ethers.utils.parseEther((500_000).toString()));
     let whitelisted = [
       owner.address,
       user1.address,
@@ -143,8 +143,8 @@ describe("IDO Private", function () {
       await expect(
         bulletIDO.connect(user1).deposit(
           proof,
-          {value: ethers.utils.parseEther('1.1')
-        })
+          {value: ethers.utils.parseEther('1.1')}
+        )
       ).to.be.rejectedWith("deposit: exceed limit");
     })
 

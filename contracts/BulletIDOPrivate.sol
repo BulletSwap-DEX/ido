@@ -47,7 +47,7 @@ contract BulletIDOPrivate is Ownable, ReentrancyGuard {
 
     constructor(address _token) {
         token = IERC20(_token);
-        offeringAmount = 500000 * 10**18;
+        offeringAmount = 500_000 * 10**18;
         raisingAmount = 5640 * 10**16;
     }
 
