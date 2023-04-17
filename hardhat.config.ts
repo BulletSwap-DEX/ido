@@ -40,6 +40,17 @@ const config = process.env.ZKSYNC == "true"
   }
   : {
     solidity: "0.8.17",
+    networks: {
+      mumbai: {
+        url: process.env.POLYGON_URL || "",
+        accounts: [process.env.ZKSYNC_PK] || ""
+      }
+    },
+    etherscan: {
+      apiKey: {
+        polygonMumbai: process.env.POLYGONSCAN_KEY || ''
+      }
+    }
   }
 
 export default config;
