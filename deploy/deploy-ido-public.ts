@@ -8,7 +8,7 @@ dotenv.config()
 export default async function(hre: HardhatRuntimeEnvironment) {
   console.log("Running deploy script: Bullet IDO Public");
   const wallet = new Wallet(process.env.ZKSYNC_PK as string);
-  const erc20Address = testnet.ERC20;
+  const erc20Address = mainnet.ERC20;
   const deployer = new Deployer(hre, wallet);
   const artifact = await deployer.loadArtifact("BulletIDOPublic");
   const contract = await deployer.deploy(artifact, [erc20Address]);
