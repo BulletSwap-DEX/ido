@@ -1,8 +1,9 @@
 import {ethers} from "hardhat";
+import { mumbai } from "../address";
 
 async function main() {
   const IDO = await ethers.getContractFactory("BulletIDOPrivate");
-  const ido = await IDO.deploy('0xcBbd42BE0f69C786ED5C386e9eeE8cBDCE31E9E3');
+  const ido = await IDO.deploy(mumbai.ERC20);
   await ido.deployed();
 
   console.log("IDO deployed to:", ido.address);
