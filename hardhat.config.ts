@@ -34,9 +34,6 @@ const config = process.env.ZKSYNC == "true"
         zksync: true,
       }
     },
-    etherscan: {
-      apikey: process.env.ETHERSCAN_KEY
-    }
   }
   : {
     solidity: "0.8.17",

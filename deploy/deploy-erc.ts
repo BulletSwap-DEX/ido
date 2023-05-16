@@ -6,7 +6,7 @@ import {ethers} from "hardhat";
 
 dotenv.config()
 export default async function(hre: HardhatRuntimeEnvironment) {
-  console.log("Running deploy script");
+  console.log("Running deploy script: BulletERC20");
   const wallet = new Wallet(process.env.ZKSYNC_PK as string);
   const deployer = new Deployer(hre, wallet);
   const artifact = await deployer.loadArtifact("BulletERC20");
