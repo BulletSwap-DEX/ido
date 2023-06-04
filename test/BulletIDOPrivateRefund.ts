@@ -20,8 +20,10 @@ describe("IDO Private", function () {
     const leafNode = whitelisted.map(addr => keccak256(addr));
     const merkleTree = new MerkleTree(leafNode, keccak256, {sortPairs: true});
     await bulletIDO.setRoot('0x' + merkleTree.getRoot().toString('hex'));
+
     const BulletRefund = await ethers.getContractFactory("BulletIDOPrivateRefund");
     const bulletRefund = await BulletRefund.deploy(bulletIDO.address);
+    owner.sendTransaction({to: bulletRefund.address, value: ethers.utils.parseEther('1')});
 
     const ONE_DAY = 24 * 60 * 60;
     return {
@@ -44,6 +46,7 @@ describe("IDO Private", function () {
         bulletIDO,
         bulletRefund,
         user1,
+        user2,
         merkleTree,
         leafNode,
         ONE_DAY
@@ -77,7 +80,13 @@ describe("IDO Private", function () {
       ).to.be.rejectedWith("stage: not sale");
 
       const amount = await bulletRefund.getUserAmount(user1.address);
-      console.log('amount', ethers.utils.formatEther(amount[0]));
+      expect(ethers.utils.formatEther(amount[0])).to.equal('1.0');
+      expect(ethers.utils.formatEther(await user1.provider!.getBalance(bulletRefund.address))).to.equal('1.0');
+
+      await bulletRefund.connect(user1).claimRefund();
+      expect(ethers.utils.formatEther(await user1.provider!.getBalance(bulletRefund.address))).to.equal('0.0');
+      await expect(bulletRefund.connect(user1).claimRefund()).to.be.rejectedWith('already claim');
+      await expect(bulletRefund.connect(user2).claimRefund()).to.be.rejectedWith('zero amount');
     })
   })
 })
